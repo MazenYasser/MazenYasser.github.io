@@ -1,0 +1,656 @@
+/* ═══════════════════════════════════════════════════════
+   BOOT SEQUENCE PORTFOLIO — style.css
+
+   Aesthetic: Terminal / SSH session on GitHub-dark
+   Font: JetBrains Mono (Google Fonts)
+
+   To change colors, edit the CSS variables below.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ────────────────────────────────────── */
+:root {
+  --bg:          #0d1117;
+  --text:        #e6edf3;
+  --accent:      #00ff9f;
+  --accent-dim:  #00ff9f33;
+  --blue:        #58a6ff;
+  --red:         #ff5f56;
+  --yellow:      #ffbd2e;
+  --green:       #27c93f;
+  --muted:       #8b949e;
+  --surface:     #161b22;
+  --border:      #30363d;
+  --font:        'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --line-height: 1.65;
+}
+
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 15px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: var(--line-height);
+  min-height: 100vh;
+  /* iOS: 100vh is taller than the visible area while the toolbar shows,
+     so the boot sequence's scroll-to-bottom pushed the first lines away */
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* ── CRT Scanline Overlay ─────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* ── Terminal Window Chrome ───────────────────────────── */
+.terminal-window {
+  max-width: 960px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-titlebar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.titlebar-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.titlebar-dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot-red    { background: var(--red); }
+.dot-yellow { background: var(--yellow); }
+.dot-green  { background: var(--green); }
+
+.titlebar-text {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-left: 8px;
+}
+
+.titlebar-links {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+}
+
+.titlebar-links a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.titlebar-links a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* ── Terminal Body ────────────────────────────────────── */
+.terminal-body {
+  flex: 1;
+  padding: 24px 24px 120px;
+}
+
+/* ── Skip Intro Button ────────────────────────────────── */
+.skip-intro {
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.skip-intro:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.skip-intro.hidden {
+  display: none;
+}
+
+/* ── Boot Lines (initial loading sequence) ────────────── */
+.boot-line {
+  opacity: 0;
+  white-space: pre-wrap;
+  margin-bottom: 2px;
+}
+
+.boot-line.visible {
+  opacity: 1;
+}
+
+.boot-line .checkmark {
+  color: var(--accent);
+}
+
+/* ── Command Prompt Lines ─────────────────────────────── */
+.command-line {
+  margin-top: 20px;
+  margin-bottom: 4px;
+}
+
+.prompt-prefix {
+  color: var(--accent);
+}
+
+.command-text {
+  color: var(--text);
+}
+
+.cmd-comment {
+  color: var(--muted);
+  margin-left: 2ch;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Blinking Cursor ──────────────────────────────────── */
+.cursor {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--bg);
+  width: 0.6em;
+  height: 1.15em;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ── Sections (hidden until revealed) ─────────────────── */
+.section {
+  display: none;
+  margin-bottom: 8px;
+}
+
+.section.revealed {
+  display: block;
+}
+
+/* ── Section: whoami (About) ──────────────────────────── */
+.about-name {
+  color: var(--accent);
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.about-title {
+  color: var(--blue);
+  margin-bottom: 12px;
+}
+
+.about-bio {
+  color: var(--text);
+  max-width: 68ch;
+  line-height: 1.7;
+}
+
+.bio-row {
+  display: grid;
+  grid-template-columns: 8ch 1fr;
+  margin-bottom: 10px;
+}
+
+.bio-key {
+  color: var(--muted);
+}
+
+.bio-key::after {
+  content: ':';
+}
+
+.metric {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.bio-motto {
+  color: var(--blue);
+  margin-top: 4px;
+}
+
+/* ── Section: ls projects/ ────────────────────────────── */
+.project-list {
+  list-style: none;
+}
+
+.project-entry {
+  margin-bottom: 2px;
+}
+
+.project-meta {
+  color: var(--muted);
+}
+
+.project-name {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--blue);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.project-name:focus-visible,
+.git-log-entry:focus-visible,
+.skip-intro:focus-visible,
+a:focus-visible {
+  outline: 1px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .project-name:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+}
+
+.project-detail {
+  display: none;
+  margin: 8px 0 16px 2ch;
+  padding: 12px 16px;
+  border-left: 2px solid var(--accent-dim);
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.project-detail.open {
+  display: block;
+}
+
+.project-detail .label {
+  color: var(--muted);
+}
+
+.project-detail .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.project-detail .tag {
+  background: var(--accent-dim);
+  color: var(--accent);
+  padding: 2px 10px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+/* ── Section: git log (Timeline) ──────────────────────── */
+.git-log-entry {
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+@media (hover: hover) {
+  .git-log-entry:hover {
+    color: var(--accent);
+  }
+}
+
+.git-hash {
+  color: var(--yellow);
+}
+
+.git-ref {
+  color: var(--accent);
+}
+
+.git-date {
+  color: var(--muted);
+}
+
+.git-msg {
+  color: var(--text);
+}
+
+.commit-detail {
+  display: none;
+  margin: 4px 0 12px 4ch;
+  padding: 8px 16px;
+  border-left: 2px solid var(--accent-dim);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.commit-detail.open {
+  display: block;
+}
+
+/* ── Section: ps aux (Focus) ──────────────────────────── */
+.process-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.process-table th {
+  color: var(--muted);
+  text-align: left;
+  padding: 4px 12px 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.process-table td {
+  padding: 4px 12px 4px 0;
+  white-space: nowrap;
+}
+
+.process-table .status-running  { color: var(--accent); }
+.process-table .status-stable   { color: var(--blue); }
+.process-table .status-bg       { color: var(--muted); }
+.process-table .status-active   { color: var(--yellow); }
+
+.process-table .highlight-row td {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── Section: contact ─────────────────────────────────── */
+.contact-intro {
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.contact-links {
+  line-height: 2;
+}
+
+.contact-links a,
+.about-bio a,
+.project-detail a,
+.commit-detail a {
+  color: var(--blue);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.contact-links a:hover,
+.about-bio a:hover,
+.project-detail a:hover,
+.commit-detail a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.contact-comment {
+  color: var(--muted);
+  margin-top: 16px;
+}
+
+/* ── Advance Prompt ───────────────────────────────────── */
+.advance-prompt {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  animation: pulse 2s ease-in-out infinite;
+  cursor: pointer;
+  user-select: none;
+}
+
+body.sequence-complete .advance-prompt {
+  display: none;
+}
+
+.hint-touch { display: none; }
+
+@media (hover: none) {
+  .hint-mouse { display: none; }
+  .hint-touch { display: inline; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* ── Easter Egg Input (final prompt) ──────────────────── */
+.final-prompt {
+  display: none;
+  margin-top: 20px;
+}
+
+.final-prompt.visible {
+  display: block;
+}
+
+/* Keeps prompt prefix and input on the same line, always */
+.prompt-input-line {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.prompt-input-line .prompt-prefix {
+  flex-shrink: 0;        /* never let the prefix wrap or shrink */
+}
+
+.final-input {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: inherit;
+  outline: none;
+  flex: 1;               /* fill all remaining space after prefix */
+  min-width: 0;          /* allow flex item to shrink below content size */
+  caret-color: var(--accent);
+}
+
+@media (hover: none) {
+  .final-input {
+    font-size: 16px;
+  }
+}
+
+.easter-egg-response {
+  color: var(--accent);
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+/* ── Typewriter: characters appear one by one ─────────── */
+.typewriter-target {
+  visibility: hidden;
+}
+
+.typewriter-target.typed {
+  visibility: visible;
+}
+
+/* ── Mobile Responsive ────────────────────────────────── */
+@media (max-width: 700px) {
+  html {
+    font-size: 14px;
+  }
+
+  .terminal-body {
+    padding: 16px 12px 100px;
+  }
+
+  .terminal-titlebar {
+    padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+
+  .titlebar-text {
+    display: none;
+  }
+
+  .titlebar-links {
+    gap: 10px;
+  }
+
+  .process-table td,
+  .process-table th {
+    padding: 3px 8px 3px 0;
+    white-space: normal;
+  }
+}
+
+/* Wide screens: a framed window on a darker desk */
+@media (min-width: 1000px) {
+  body {
+    background: #010409;
+  }
+
+  .terminal-window {
+    margin: 24px auto;
+    min-height: calc(100dvh - 48px);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .terminal-titlebar {
+    border-radius: 10px 10px 0 0;
+  }
+}
+
+/* Tree carets mark expandable lines and flip when open */
+.project-name::before,
+.git-log-entry::before {
+  content: '▸ ';
+  color: var(--muted);
+}
+.project-entry.open .project-name::before,
+.git-log-entry.open::before {
+  content: '▾ ';
+  color: var(--accent);
+}
+
+/* ── Clickable-line glow ─────────────────────────────── */
+
+/* 1. One shimmer sweep down the clickable lines after the intro */
+.project-name { --shimmer-base: var(--blue); }
+.git-msg      { --shimmer-base: var(--text); }
+
+body.shimmer .project-name,
+body.shimmer .git-msg {
+  background: linear-gradient(90deg,
+    var(--shimmer-base) 40%, var(--accent) 50%, var(--shimmer-base) 60%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 0.9s ease-in-out calc(var(--i, 0) * 80ms) 1 both;
+}
+
+@keyframes shimmer {
+  to { background-position: 0 0; }
+}
+
+/* 2. Closed carets breathe until the first real click */
+body.carets-glow:not(.explored) .project-entry:not(.open) .project-name::before,
+body.carets-glow:not(.explored) .git-log-entry:not(.open)::before {
+  animation: caret-breathe 2s ease-in-out infinite;
+}
+
+@keyframes caret-breathe {
+  50% { color: var(--accent); text-shadow: 0 0 8px var(--accent); }
+}
+
+/* 3. Glow on hover (mouse only) and a short glow on every click/tap */
+@media (hover: hover) {
+  .project-name:hover,
+  .git-log-entry:hover {
+    text-shadow: 0 0 8px rgba(0, 255, 159, 0.55);
+  }
+}
+
+.tap-glow {
+  animation: tap-glow 0.6s ease-out;
+}
+
+@keyframes tap-glow {
+  from { text-shadow: 0 0 12px rgba(0, 255, 159, 0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .advance-prompt {
+    animation: none;
+  }
+  body.shimmer .project-name,
+  body.shimmer .git-msg,
+  .tap-glow {
+    animation: none;
+  }
+  body.shimmer .project-name { color: var(--blue); }
+  body.shimmer .git-msg      { color: var(--text); }
+  body.carets-glow:not(.explored) .project-entry:not(.open) .project-name::before,
+  body.carets-glow:not(.explored) .git-log-entry:not(.open)::before {
+    animation: none;
+    color: var(--accent);
+  }
+}
